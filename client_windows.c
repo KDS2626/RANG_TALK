@@ -2,7 +2,7 @@
 * RANG TALK PROGRAM Ver 0.1
 * 작성자 : 신예랑
 * 내  용: 1:1 채팅 프로그램 ver 0.1(C스타일 코딩)
-* 윈도우
+* 윈도우(클라이언트)
 */
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
