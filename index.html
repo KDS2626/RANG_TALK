@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1:1 채팅</title>
+    <style>
+#messages {
+    height: 400px;
+    overflow-y: scroll;
+    border: 1px solid #000000;
+    padding: 10px;
+    background-color: black;
+    border-radius: 10px; /* 전체 채팅창에 둥근 모서리 추가 */
+}
+
+.me, .other, .system {
+    display: block; /* 각 메시지가 독립적인 블록처럼 처리되도록 */
+    padding: 10px;
+    margin: 10px 0; /* 메시지 간 여백 */
+    border-radius: 15px;
+    position: relative;
+    word-wrap: break-word; /* 긴 단어가 잘리거나 줄바꿈 되게 설정 */
+    white-space: pre-wrap; /* 공백과 줄바꿈을 그대로 처리하도록 설정 */
+    max-width: 80%; /* 최대 너비를 80%로 제한 */
+    width: auto; /* 텍스트 길이에 맞게 말풍선 너비 조정 */
+    min-width: 50px; /* 너무 작은 말풍선 방지 */
+}
+
+.me {
+    background-color: rgb(255, 217, 0);
+    text-align: right;
+    margin-left: auto; /* 오른쪽 정렬 */
+}
+
+.other {
+    background-color: rgb(255, 255, 255);
+    margin-right: auto; /* 왼쪽 정렬 */
+}
+
+.system {
+    background-color: rgb(245, 187, 237);
+    font-style: italic;
+    text-align: center;
+    width: 96%; /* 부모 컨테이너의 너비에 맞게 100%로 설정 */
+    max-width: 600px; /* 최대 1000px까지 늘어날 수 있도록 */
+    word-wrap: break-word; /* 긴 단어가 잘리거나 줄바꿈 되게 설정 */
+}
+
+
+.me::after, .other::after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+}
+
+.me::after {
+    border-top: 10px solid rgb(255, 217, 0); /* 본인의 메시지 말풍선 삼각형 */
+    right: -10px;
+    top: 10px;
+}
+
+.other::after {
+    border-top: 10px solid rgb(255, 255, 255); /* 상대방의 메시지 말풍선 삼각형 */
+    left: -10px;
+    top: 10px;
+}
+
+
+
+
+    </style>
+</head>
+<body>
+    <input type="text" id="nicknameInput" placeholder="닉네임을 입력하세요." style="width: 200px; height: 30px; margin: 5px;">
+    <button id="nicknameSubmit" style="width: 100px; height: 35px;">닉네임 설정</button>
+    <hr>
+    <div id="messages" style="width: 550px;"></div>
+
+    <input type="text" id="messageInput" placeholder="메시지를 입력하세요" disabled style="width:500px; height:35px; margin-top: 10px;">
+    <button id="sendButton" disabled style="width: 60px; height: 38.9px;">전송</button>
+
+    <script>
+        const socket = new WebSocket("ws://localhost:8080");
+        const messageInput = document.getElementById("messageInput");
+        const nicknameInput = document.getElementById("nicknameInput");
+        const nicknameSubmit = document.getElementById("nicknameSubmit");
+        const sendButton = document.getElementById("sendButton");
+        const messageContainer = document.getElementById("messages");
+
+        let nickname = null;
+
+        // 서버 연결 시 닉네임을 요청
+        socket.onopen = function() {
+            console.log("서버에 연결되었습니다.");
+        };
+
+        // 서버로부터 받은 메시지 처리
+        socket.onmessage = function(event) {
+            const message = event.data;
+            if (message.includes("님이 채팅방에 입장 하였습니다.") || message.includes("님이 채팅방을 퇴장 하였습니다.")) {
+                // 시스템 메시지 처리 (입장/퇴장)
+                displayMessage(message, 'system');
+            } else {
+                // 일반 메시지 처리
+                const parts = message.split(': ');  // "클라1: 메시지" 형식 처리
+                if (parts.length > 1) {
+                    const sender = parts[0];  // 클라1, 클라2 등
+                    const text = parts[1];    // 실제 메시지
+                    displayMessage(`${sender}: ${text}`, sender === nickname ? 'me' : 'other');
+                }
+            }
+        };
+
+        // 메시지 화면에 표시하는 함수
+        function displayMessage(message, sender) {
+            const messageElement = document.createElement("div");
+
+            if (sender === 'system') {
+                messageElement.classList.add('system');
+            } else if (sender === 'me') {
+                messageElement.classList.add('me');
+            } else {
+                messageElement.classList.add('other');
+            }
+
+            messageElement.textContent = message;
+            messageContainer.appendChild(messageElement);
+
+            messageContainer.scrollTop = messageContainer.scrollHeight;  // 항상 맨 아래로 스크롤
+        }
+
+        // 메시지 전송 함수
+        function sendMessage() {
+            const message = messageInput.value;
+            if (message.trim() === "") return;  // 빈 메시지 전송 방지
+
+            // 본인의 메시지를 화면에 표시
+            displayMessage(message, 'me');
+            socket.send(message);  // 서버로 메시지 전송
+
+            messageInput.value = "";  // 입력란 비우기
+        }
+
+        // 전송 버튼 클릭 시 메시지 전송
+        sendButton.addEventListener("click", sendMessage);
+
+        // 엔터 키로 메시지 전송
+        messageInput.addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // 닉네임 제출 버튼 클릭 시 닉네임 설정
+        nicknameSubmit.addEventListener("click", function() {
+            nickname = nicknameInput.value.trim();
+            if (!nickname) {
+                alert("닉네임을 입력해주세요.");
+                return;
+            }
+
+            socket.send(nickname);  // 서버에 닉네임 전송
+            nicknameInput.disabled = true;  // 닉네임 입력란 비활성화
+            nicknameSubmit.disabled = true;  // 닉네임 제출 버튼 비활성화
+            messageInput.disabled = false;  // 메시지 입력란 활성화
+            sendButton.disabled = false;  // 전송 버튼 활성화
+            displayMessage(`${nickname}님이 채팅방에 입장 하였습니다.`, 'system');  // 본인의 입장 메시지
+        });
+    </script>
+</body>
+</html>
