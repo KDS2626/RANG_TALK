@@ -1,20 +1,3 @@
-const express = require("express");
-const WebSocket = require("ws");
-const app = express();
-const PORT = process.env.PORT || 8080;  // Heroku에서는 환경변수 PORT를 사용
-
-// WebSocket 서버를 express와 같은 포트에서 실행
-const wss = new WebSocket.Server({ noServer: true });
-
-let clients = [];  // 연결된 모든 클라이언트의 WebSocket 객체를 저장하는 배열
-let nicknames = new Set();  // 사용 중인 닉네임을 저장하는 Set
-
-// 현재 시간을 반환하는 함수 (형식: YYYY-MM-DD HH:MM:SS)
-function getCurrentTime() {
-    const now = new Date();
-    return now.toLocaleString();  // 서버의 현재 시간을 "YYYY-MM-DD HH:MM:SS" 형식으로 반환
-}
-
 // WebSocket 연결 처리
 wss.on('connection', (ws) => {
     let nickname = null;  // 클라이언트의 닉네임을 저장할 변수
@@ -98,16 +81,9 @@ wss.on('connection', (ws) => {
             });
         }
     });
-});
 
-// WebSocket 서버와 Express 서버 연결 (upgrade 요청 처리)
-app.server = app.listen(PORT, () => {
-    console.log(`서버가 ${PORT}번 포트에서 실행 중입니다.`);
-});
-
-// WebSocket 서버와 Express 서버 통합 (upgrade 요청 처리)
-app.server.on('upgrade', (request, socket, head) => {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);  // WebSocket 연결 처리
+    // 에러 처리
+    ws.on('error', (error) => {
+        console.error(`WebSocket 에러 발생: ${error.message}`);
     });
 });
