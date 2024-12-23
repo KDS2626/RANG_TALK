@@ -100,14 +100,14 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Express 서버와 WebSocket 서버 연결
+// WebSocket 서버와 Express 서버 연결 (upgrade 요청 처리)
 app.server = app.listen(PORT, () => {
     console.log(`서버가 ${PORT}번 포트에서 실행 중입니다.`);
 });
 
-// WebSocket 연결을 Express 서버에 통합
+// WebSocket 서버와 Express 서버 통합 (upgrade 요청 처리)
 app.server.on('upgrade', (request, socket, head) => {
     wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
+        wss.emit('connection', ws, request);  // WebSocket 연결 처리
     });
 });
