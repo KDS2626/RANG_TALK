@@ -105,7 +105,7 @@ app.server = app.listen(PORT, () => {
     console.log(`서버가 ${PORT}번 포트에서 실행 중입니다.`);
 });
 
-// WebSocket 서버를 express 서버와 함께 사용
+// WebSocket 연결을 Express 서버에 통합
 app.server.on('upgrade', (request, socket, head) => {
     wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
