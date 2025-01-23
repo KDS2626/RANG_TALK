@@ -1,4 +1,18 @@
-// WebSocket 연결 처리
+const WebSocket = require('ws');
+
+// WebSocket 서버 생성
+const wss = new WebSocket.Server({ port: 8080 });
+
+let clients = [];  // 연결된 클라이언트들을 저장할 배열
+let nicknames = new Set();  // 사용 중인 닉네임을 저장할 Set
+
+// 서버에서 시간 정보를 생성하는 함수
+function getCurrentTime() {
+    const now = new Date();
+    return now.toLocaleString();  // 서버 시간 반환
+}
+
+// WebSocket 서버에 연결된 클라이언트 처리
 wss.on('connection', (ws) => {
     let nickname = null;  // 클라이언트의 닉네임을 저장할 변수
 
