@@ -50,21 +50,39 @@ wss.on('connection', (ws) => {
                 });
             }
         } else {
-            // 닉네임 이후의 메시지 처리
-            console.log(`${nickname}가 보낸 메시지: ${message}`);
+            // 귓속말 처리
+            if (message.startsWith('@')) {
+                const parts = message.split(' ');
+                const targetNickname = parts[0].substring(1); // '@' 이후 닉네임을 추출
+                const privateMessage = parts.slice(1).join(' ');  // 귓속말 내용
 
-            // 메시지에 시간을 추가해서 모든 클라이언트에게 전송
-            const timeMessage = `${message} (${getCurrentTime()})`;  // 시간만 포함한 메시지
+                const targetClient = clients.find(client => client.nickname === targetNickname);
 
-            // 모든 클라이언트에게 메시지 전송 (자기 자신 제외)
-            clients.forEach(client => {
-                if (client !== ws && client.readyState === WebSocket.OPEN) {
-                    client.send(`${nickname}: ${message} (${getCurrentTime()})`);
+                if (targetClient) {
+                    // 타겟 클라이언트에게 귓속말 전송
+                    targetClient.send(`${nickname}님이 보낸 귓속말: ${privateMessage} (${getCurrentTime()})`);
+                    ws.send(`${targetNickname}님에게 보낸 귓속말: ${privateMessage} (${getCurrentTime()})`);
+                } else {
+                    // 타겟 닉네임이 존재하지 않으면
+                    ws.send(`해당 사용자 ${targetNickname}는 존재하지 않습니다.`);
                 }
-            });
+            } else {
+                // 일반 메시지 처리
+                console.log(`${nickname}가 보낸 메시지: ${message}`);
 
-            // 자기 자신에게는 시간 포함된 메시지만 보내기
-            ws.send(timeMessage);  // 자기 자신에게는 nickname 없이 시간 포함된 메시지 전송
+                // 메시지에 시간을 추가해서 모든 클라이언트에게 전송
+                const timeMessage = `${message} (${getCurrentTime()})`;  // 시간만 포함한 메시지
+
+                // 모든 클라이언트에게 메시지 전송 (자기 자신 제외)
+                clients.forEach(client => {
+                    if (client !== ws && client.readyState === WebSocket.OPEN) {
+                        client.send(`${nickname}: ${message} (${getCurrentTime()})`);
+                    }
+                });
+
+                // 자기 자신에게는 시간 포함된 메시지만 보내기
+                ws.send(timeMessage);  // 자기 자신에게는 nickname 없이 시간 포함된 메시지 전송
+            }
         }
     });
 
@@ -75,8 +93,8 @@ wss.on('connection', (ws) => {
             console.log(`${nickname} 연결 종료`);
 
             // clients 배열에서 해당 클라이언트를 제거하고, 닉네임 Set에서도 삭제
-            clients = clients.filter(client => client !== ws);
-            nicknames.delete(nickname);
+            clients = clients.filter(client => client !== ws);  // 퇴장한 클라이언트를 clients에서 제거
+            nicknames.delete(nickname);  // 해당 닉네임 삭제
 
             // 다른 클라이언트들에게 퇴장 메시지 전송
             clients.forEach(client => {
